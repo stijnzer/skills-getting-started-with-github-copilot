@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from src.app import app, activities
+from copy import deepcopy
 
 client = TestClient(app)
 
@@ -8,17 +9,15 @@ client = TestClient(app)
 @pytest.fixture(autouse=True)
 def reset_activities():
     """Reset activities to initial state before each test"""
-    # Save original state
-    original_state = {}
-    for activity_name, details in activities.items():
-        original_state[activity_name] = details["participants"].copy()
+    # Save original state with deep copy
+    original_state = deepcopy(activities)
     
     # Run the test
     yield
     
     # Restore original state after test
-    for activity_name, participants in original_state.items():
-        activities[activity_name]["participants"] = participants
+    activities.clear()
+    activities.update(original_state)
 
 def test_get_activities():
     response = client.get("/activities")
