@@ -1,6 +1,6 @@
+import pytest
 from fastapi.testclient import TestClient
 from src.app import app, activities
-import pytest
 
 client = TestClient(app)
 

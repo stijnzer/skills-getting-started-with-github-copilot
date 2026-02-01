@@ -69,7 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 ${details.participants.map(email => `
                   <li>
                     <span class="participant-email">${escapeHtml(email)}</span>
-                    <span class="delete-participant" title="Remove" data-activity="${escapeHtml(name)}" data-email="${escapeHtml(email)}">&#128465;</span>
+                    <span class="delete-participant" title="Remove" data-activity="${name}" data-email="${email}">&#128465;</span>
                   </li>
                 `).join("")}
               </ul>
