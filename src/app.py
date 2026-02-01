@@ -8,20 +8,12 @@ for extracurricular activities at Mergington High School.
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel, EmailStr
+from pydantic import EmailStr
 import os
 from pathlib import Path
 
 app = FastAPI(title="Mergington High School API",
               description="API for viewing and signing up for extracurricular activities")
-
-
-class SignupRequest(BaseModel):
-    email: EmailStr
-
-
-class UnregisterRequest(BaseModel):
-    email: EmailStr
 
 # Mount the static files directory
 current_dir = Path(__file__).parent
