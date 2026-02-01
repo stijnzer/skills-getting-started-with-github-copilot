@@ -4,6 +4,45 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
+  // Helper function to escape HTML
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Delegate click event for delete icons (registered once, outside the loop)
+  activitiesList.addEventListener("click", async (event) => {
+    if (event.target.classList.contains("delete-participant")) {
+      const activity = event.target.getAttribute("data-activity");
+      const email = event.target.getAttribute("data-email");
+      if (confirm(`Remove ${email} from ${activity}?`)) {
+        try {
+          const response = await fetch(`/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`, {
+            method: "POST"
+          });
+          const result = await response.json();
+          if (response.ok) {
+            fetchActivities();
+            messageDiv.textContent = result.message;
+            messageDiv.className = "success";
+          } else {
+            messageDiv.textContent = result.detail || "An error occurred";
+            messageDiv.className = "error";
+          }
+          messageDiv.classList.remove("hidden");
+          setTimeout(() => {
+            messageDiv.classList.add("hidden");
+          }, 5000);
+        } catch (error) {
+          messageDiv.textContent = "Failed to unregister. Please try again.";
+          messageDiv.className = "error";
+          messageDiv.classList.remove("hidden");
+        }
+      }
+    }
+  });
+
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
@@ -29,44 +68,13 @@ document.addEventListener("DOMContentLoaded", () => {
               <ul class="participants-list">
                 ${details.participants.map(email => `
                   <li>
-                    <span class="participant-email">${email}</span>
-                    <span class="delete-participant" title="Remove" data-activity="${name}" data-email="${email}">&#128465;</span>
+                    <span class="participant-email">${escapeHtml(email)}</span>
+                    <span class="delete-participant" title="Remove" data-activity="${escapeHtml(name)}" data-email="${escapeHtml(email)}">&#128465;</span>
                   </li>
                 `).join("")}
               </ul>
             </div>
           `;
-          // Delegate click event for delete icons
-          activitiesList.addEventListener("click", async (event) => {
-            if (event.target.classList.contains("delete-participant")) {
-              const activity = event.target.getAttribute("data-activity");
-              const email = event.target.getAttribute("data-email");
-              if (confirm(`Remove ${email} from ${activity}?`)) {
-                try {
-                  const response = await fetch(`/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`, {
-                    method: "POST"
-                  });
-                  const result = await response.json();
-                  if (response.ok) {
-                    fetchActivities();
-                    messageDiv.textContent = result.message;
-                    messageDiv.className = "success";
-                  } else {
-                    messageDiv.textContent = result.detail || "An error occurred";
-                    messageDiv.className = "error";
-                  }
-                  messageDiv.classList.remove("hidden");
-                  setTimeout(() => {
-                    messageDiv.classList.add("hidden");
-                  }, 5000);
-                } catch (error) {
-                  messageDiv.textContent = "Failed to unregister. Please try again.";
-                  messageDiv.className = "error";
-                  messageDiv.classList.remove("hidden");
-                }
-              }
-            }
-          });
         } else {
           participantsHTML = `
             <div class="participants-section no-participants">
@@ -76,9 +84,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         activityCard.innerHTML = `
-          <h4>${name}</h4>
-          <p>${details.description}</p>
-          <p><strong>Schedule:</strong> ${details.schedule}</p>
+          <h4>${escapeHtml(name)}</h4>
+          <p>${escapeHtml(details.description)}</p>
+          <p><strong>Schedule:</strong> ${escapeHtml(details.schedule)}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
           ${participantsHTML}
         `;

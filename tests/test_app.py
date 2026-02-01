@@ -1,8 +1,24 @@
-import pytest
 from fastapi.testclient import TestClient
-from src.app import app
+from src.app import app, activities
+import pytest
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def reset_activities():
+    """Reset activities to initial state before each test"""
+    # Save original state
+    original_state = {}
+    for activity_name, details in activities.items():
+        original_state[activity_name] = details["participants"].copy()
+    
+    # Run the test
+    yield
+    
+    # Restore original state after test
+    for activity_name, participants in original_state.items():
+        activities[activity_name]["participants"] = participants
 
 def test_get_activities():
     response = client.get("/activities")
@@ -38,3 +54,45 @@ def test_unregister_from_activity():
     response2 = client.post(f"/activities/{activity}/unregister?email={email}")
     assert response2.status_code == 400
     assert "not registered" in response2.json()["detail"]
+
+
+def test_signup_for_nonexistent_activity():
+    """Test that signing up for a non-existent activity returns 404"""
+    activity = "Nonexistent Activity"
+    email = "testuser@example.com"
+    response = client.post(f"/activities/{activity}/signup?email={email}")
+    assert response.status_code == 404
+    assert "Activity not found" in response.json()["detail"]
+
+
+def test_unregister_from_nonexistent_activity():
+    """Test that unregistering from a non-existent activity returns 404"""
+    activity = "Nonexistent Activity"
+    email = "testuser@example.com"
+    response = client.post(f"/activities/{activity}/unregister?email={email}")
+    assert response.status_code == 404
+    assert "Activity not found" in response.json()["detail"]
+
+
+def test_signup_when_activity_is_full():
+    """Test that signing up for a full activity returns 400"""
+    activity = "Mathletes"  # max_participants: 10
+    # Fill the activity to capacity
+    for i in range(10):
+        email = f"student{i}@example.com"
+        response = client.post(f"/activities/{activity}/signup?email={email}")
+        assert response.status_code == 200
+    
+    # Try to add one more (should fail)
+    email = "overflow@example.com"
+    response = client.post(f"/activities/{activity}/signup?email={email}")
+    assert response.status_code == 400
+    assert "Activity is full" in response.json()["detail"]
+
+
+def test_invalid_email_format():
+    """Test that invalid email format is rejected"""
+    activity = "Art Club"
+    invalid_email = "not-an-email"
+    response = client.post(f"/activities/{activity}/signup?email={invalid_email}")
+    assert response.status_code == 422  # Pydantic validation error
